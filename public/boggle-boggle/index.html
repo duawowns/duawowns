@@ -9,14 +9,7 @@
   html, body { width: 100%; height: 100%; overflow: hidden; cursor: none; background: #1a1033; font-family: 'Segoe UI', sans-serif; }
   #bg { position: fixed; inset: 0; transition: background 1.2s ease; z-index: 0; }
   #hint { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.25); font-size: 14px; letter-spacing: 2px; pointer-events: none; z-index: 5; transition: opacity 0.6s; }
-  #hud { position: fixed; top: 0; left: 0; right: 0; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 10; pointer-events: none; }
-  .stat { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-  .stat .label { font-size: 11px; opacity: 0.5; letter-spacing: 3px; text-transform: uppercase; }
-  .stat .val { font-size: 32px; font-weight: 800; line-height: 1; }
-  #comboWrap { text-align: right; }
-  #comboVal { color: #ffd34e; }
-  #msg { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 22px; font-weight: 700; text-shadow: 0 2px 12px rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10; white-space: nowrap; }
-  #msg.show { opacity: 1; }
+
   canvas { position: fixed; inset: 0; z-index: 1; }
   #cursor { position: fixed; width: 14px; height: 14px; border-radius: 50%; background: #fff; pointer-events: none; z-index: 100; transform: translate(-50%, -50%); mix-blend-mode: difference; transition: transform 0.08s; }
 </style>
@@ -26,25 +19,11 @@
 <canvas id="c"></canvas>
 <div id="cursor"></div>
 <div id="hint">움직이고 · 클릭하고 · 멈추지 마세요</div>
-<div id="hud">
-  <div class="stat">
-    <div class="label">뽀글 포인트</div>
-    <div class="val" id="scoreVal">0</div>
-  </div>
-  <div class="stat" id="comboWrap">
-    <div class="label">콤보</div>
-    <div class="val" id="comboVal">0</div>
-  </div>
-</div>
-<div id="msg"></div>
 
 <script>
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const bg = document.getElementById('bg');
-const scoreVal = document.getElementById('scoreVal');
-const comboVal = document.getElementById('comboVal');
-const msgEl = document.getElementById('msg');
 const hint = document.getElementById('hint');
 const cursor = document.getElementById('cursor');
 
@@ -86,7 +65,7 @@ const pet = {
 };
 
 let score = 0, combo = 0, comboTimer = 0, best = 0;
-let shake = 0;
+let shake = 0, hudPop = 0;
 
 const particles = [];
 
@@ -99,11 +78,11 @@ const messages = {
   100: ['뽀글 신이 됐어', '100... 전설이야', '이제 못 돌려', '영원히 뽀글']
 };
 
+let msg = { text:'', shown:false, fade:0 };
 function say(text) {
-  msgEl.textContent = text;
-  msgEl.classList.add('show');
+  msg.text = text; msg.shown = true;
   clearTimeout(say._t);
-  say._t = setTimeout(()=>msgEl.classList.remove('show'), 1800);
+  say._t = setTimeout(()=>msg.shown = false, 1600);
 }
 function pickMsg() {
   const tiers = Object.keys(messages).map(Number).sort((a,b)=>a-b);
@@ -121,8 +100,7 @@ function pop() {
   const pts = 1 + Math.floor(combo/5);
   score += pts;
   best = Math.max(best, combo);
-  scoreVal.textContent = score;
-  comboVal.textContent = combo;
+  hudPop = 1;
 
   // 찌그러뜨리기
   pet.squishV -= 0.5;
@@ -171,7 +149,7 @@ function update() {
   if(pet.blink>0) pet.blink--;
 
   // 콤보 감소
-  if(comboTimer>0){ comboTimer--; if(comboTimer===0){ combo=0; comboVal.textContent='0'; pet.hue=280; bg.style.background='#1a1033'; say('...콤보 사라짐 ㅠ'); }}
+  if(comboTimer>0){ comboTimer--; if(comboTimer===0){ combo=0; pet.hue=280; bg.style.background='#1a1033'; say('...콤보 사라짐 ㅠ'); }}
 
   // 파티클
   for(let i=particles.length-1;i>=0;i--){
@@ -187,6 +165,10 @@ function update() {
   // 속도에 따른 기분
   const sp = Math.hypot(pet.vx, pet.vy);
   pet.mood = sp > 6 ? 'excited' : (sp < 0.5 ? 'calm' : 'curious');
+
+  // 메시지 페이드 / HUD 팝 감쇠
+  msg.fade += ((msg.shown ? 1 : 0) - msg.fade) * 0.15;
+  hudPop *= 0.9;
 }
 
 function drawPet() {
@@ -278,11 +260,49 @@ function drawParticles() {
   }
 }
 
+function drawHUD() {
+  ctx.save();
+  ctx.textBaseline = 'top';
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 8;
+  // 점수 (좌상)
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = "700 12px 'Segoe UI'";
+  ctx.fillText('뽀글 포인트', 24, 20);
+  ctx.fillStyle = '#fff';
+  ctx.font = "800 34px 'Segoe UI'";
+  ctx.fillText(score, 24, 38);
+  // 콤보 (우상) — 클릭 시 팝
+  ctx.textAlign = 'right';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = "700 12px 'Segoe UI'";
+  ctx.fillText('콤보', W-24, 20);
+  const pop = 1 + hudPop * 0.35;
+  ctx.save();
+  ctx.translate(W-24, 38);
+  ctx.scale(pop, pop);
+  ctx.fillStyle = '#ffd34e';
+  ctx.font = "800 34px 'Segoe UI'";
+  ctx.fillText(combo, 0, 0);
+  ctx.restore();
+  // 메시지 (하단 중앙)
+  if(msg.fade > 0.01){
+    ctx.globalAlpha = msg.fade;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff';
+    ctx.font = "800 24px 'Segoe UI'";
+    ctx.fillText(msg.text, W/2, H-64);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+}
+
 function loop() {
   ctx.clearRect(0,0,W,H);
   update();
   drawParticles();
   drawPet();
+  drawHUD();
   requestAnimationFrame(loop);
 }
 loop();
