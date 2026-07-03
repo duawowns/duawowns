@@ -17,7 +17,6 @@ const base = import.meta.env.BASE_URL;
   </head>
   <body>
     <div class="grain" aria-hidden="true"></div>
-    <div class="cursor" id="cursor" aria-hidden="true"></div>
 
     <header class="nav">
       <a class="nav-brand" href="#top">duawowns</a>
@@ -34,24 +33,6 @@ const base = import.meta.env.BASE_URL;
     </footer>
 
     <script>
-      const cursor = document.getElementById("cursor");
-      let mx = window.innerWidth / 2, my = window.innerHeight / 2;
-      let cx = mx, cy = my;
-      window.addEventListener("pointermove", (e) => {
-        mx = e.clientX; my = e.clientY;
-      });
-      const tick = () => {
-        cx += (mx - cx) * 0.18;
-        cy += (my - cy) * 0.18;
-        if (cursor) cursor.style.transform = `translate(${cx}px, ${cy}px)`;
-        requestAnimationFrame(tick);
-      };
-      tick();
-      document.querySelectorAll("a, button, .project-row").forEach((el) => {
-        el.addEventListener("pointerenter", () => cursor?.classList.add("hot"));
-        el.addEventListener("pointerleave", () => cursor?.classList.remove("hot"));
-      });
-
       const reveal = new IntersectionObserver(
         (entries) => {
           entries.forEach((e) => {

@@ -34,11 +34,6 @@ body {
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  cursor: none;
-}
-
-@media (pointer: coarse) {
-  body { cursor: auto; }
 }
 
 ::selection {
@@ -56,35 +51,10 @@ button {
   color: inherit;
   background: none;
   border: none;
-  cursor: none;
+  cursor: pointer;
 }
 
-/* ── cursor + grain ─────────────────────────────────────────── */
-
-.cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  mix-blend-mode: difference;
-  pointer-events: none;
-  z-index: 9999;
-  transform: translate(-100px, -100px);
-  transition: width 220ms ease, height 220ms ease;
-  will-change: transform;
-}
-
-.cursor.hot {
-  width: 46px;
-  height: 46px;
-}
-
-@media (pointer: coarse) {
-  .cursor { display: none; }
-}
+/* ── grain ──────────────────────────────────────────────────── */
 
 .grain {
   position: fixed;
