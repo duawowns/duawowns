@@ -21,6 +21,26 @@
   #narr { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); font-size:18px; font-weight:800; text-shadow:0 2px 10px rgba(0,0,0,.7); opacity:0; transition:opacity .35s; pointer-events:none; z-index:9; white-space:nowrap; text-align:center; }
   #narr.show { opacity:1; }
   #tip { position:fixed; bottom:50px; left:50%; transform:translateX(-50%); font-size:11px; opacity:.35; letter-spacing:1px; pointer-events:none; z-index:9; }
+  #lb{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(10,6,20,0.65);backdrop-filter:blur(6px);}
+  #lb.show{display:flex;}
+  .lb-panel{background:#1c1438;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:18px 20px;width:min(440px,92vw);max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+  .lb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .lb-head b{font-size:16px;}
+  .lb-head button{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+  .lb-list{list-style:none;margin:0;padding:0;}
+  .lb-list li{display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;}
+  .lb-r{width:28px;text-align:center;font-weight:800;}
+  .lb-n{flex:1;}
+  .lb-s{color:#7ad7ff;font-weight:700;}
+  .lb-c{opacity:.5;font-size:12px;}
+  .lb-empty{opacity:.5;font-size:13px;justify-content:center;border:none!important;}
+  .lb-submit{display:flex;gap:8px;margin-top:14px;}
+  .lb-submit input{flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:8px;padding:9px 10px;font-size:14px;outline:none;}
+  .lb-submit input:focus{border-color:#7c5cff;}
+  .lb-submit button{background:#7c5cff;border:none;color:#fff;font-weight:800;border-radius:8px;padding:0 16px;cursor:pointer;font-size:13px;white-space:nowrap;}
+  .lb-submit button:disabled{opacity:.4;cursor:default;}
+  .lb-pred{font-size:12px;opacity:.75;margin-top:10px;text-align:center;min-height:16px;}
+  .lb-note{font-size:11px;opacity:.4;margin-top:8px;text-align:center;line-height:1.5;}
 </style>
 </head>
 <body>
@@ -35,10 +55,23 @@
     <div><div class="h">시간</div><div class="v" id="timeV">0</div></div>
   </div>
   <button class="btn" id="flagBtn">🚩 깃발 모드: 끔</button>
+  <button class="btn" id="lbBtn">🏆 순위</button>
 </div>
 <canvas id="c"></canvas>
 <div id="tip">좌클릭=열기 · 우클릭/깃발모드=표시 · 숫자 클릭=주변 한꺼번에</div>
 <div id="narr"></div>
+<div id="lb">
+  <div class="lb-panel">
+    <div class="lb-head"><b>지뢰친구 리더보드</b><button id="lbClose">✕</button></div>
+    <ol id="lbList" class="lb-list"></ol>
+    <div class="lb-pred" id="lbPred"></div>
+    <div class="lb-submit">
+      <input id="lbName" maxlength="12" placeholder="이름 (최대 12자)">
+      <button id="lbSubmit" disabled>내 기록 등록하기</button>
+    </div>
+    <div class="lb-note">클리어 시간 기준(빠를수록 위). 등록하면 GitHub 이슈가 열리고 봇이 반영해요.<br>새로고침하면 갱신돼요.</div>
+  </div>
+</div>
 
 <script>
 const cv=document.getElementById('c'), ctx=cv.getContext('2d');
@@ -152,6 +185,7 @@ function checkWin(){
     for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ const cl=grid[r][c]; if(cl.mine&&!cl.flagged){ cl.flagged=true; flagsPlaced++; } }
     updateMine(); winSound(); confetti();
     narr(['모든 폭탄 무력화!','청산별곡','신의 수','친구들 전원 생존(?)'][rand(4)]);
+    if(lbEl && lbEl.classList.contains('show')) renderLB();
   }
 }
 
@@ -310,6 +344,46 @@ function loop(t){ now=t||0;
 
 addEventListener('resize',resize);
 resize(); newGame(0); requestAnimationFrame(loop);
+
+// ---- 리더보드 ----
+const LB_GAME='mine', LB_FILE='leaderboard-mine.json', LB_REPO='duawowns/duawowns';
+let lbData=[];
+const lbBtn=document.getElementById('lbBtn'), lbEl=document.getElementById('lb'), lbList=document.getElementById('lbList'), lbName=document.getElementById('lbName'), lbSubmit=document.getElementById('lbSubmit'), lbPred=document.getElementById('lbPred');
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function openLB(){ lbEl.classList.add('show'); loadLB(); }
+function closeLB(){ lbEl.classList.remove('show'); }
+lbBtn.onclick=openLB; document.getElementById('lbClose').onclick=closeLB;
+lbEl.addEventListener('click',e=>{ if(e.target===lbEl) closeLB(); });
+async function loadLB(){
+  lbList.innerHTML='<li class="lb-empty">불러오는 중…</li>';
+  try{ const r=await fetch(LB_FILE,{cache:'no-store'}); lbData=r.ok?await r.json():[]; }
+  catch(e){ lbData=[]; }
+  renderLB();
+}
+function curTime(){ return startTime ? Math.floor((Date.now()-startTime)/1000) : 0; }
+function renderLB(){
+  if(!lbData.length){ lbList.innerHTML='<li class="lb-empty">아직 아무도 없어. 첫 1위가 되세요.</li>'; }
+  else lbList.innerHTML=lbData.map((e,i)=>{
+    const m=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+    return `<li><span class="lb-r">${m}</span><span class="lb-n">${esc(e.name)}</span><span class="lb-s">${e.time}초</span><span class="lb-c">${esc(e.diff||'')}</span></li>`;
+  }).join('');
+  const t=curTime(), won=gameState==='won';
+  if(won){ const rank=1+lbData.filter(e=>e.time<t).length; lbPred.textContent=`지금 등록하면 예상 순위: ${rank}위 (전체 ${lbData.length}명)`; }
+  else lbPred.textContent='클리어 후 등록할 수 있어요';
+  lbSubmit.disabled=!won;
+  lbSubmit.textContent=won?`내 ${t}초 등록하기`:'클리어 필요';
+}
+lbSubmit.onclick=()=>{
+  const name=(lbName.value||'익명').trim().slice(0,12)||'익명';
+  const t=curTime();
+  const diff=['쉬움','보통','어려움'][curDiff];
+  const data={game:LB_GAME,time:t,diff:diff,name:name};
+  const body='<!-- 봇 전용 -->\n```json\n'+JSON.stringify(data)+'\n```\n점수 등록 부탁드려요!';
+  const title=`[${LB_GAME}] ${t}초 · ${diff} · ${name}`;
+  const url=`https://github.com/${LB_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+  window.open(url,'_blank');
+  lbPred.textContent='GitHub에서 "Submit new issue"를 누르면 등록돼요. 잠시 후 새로고침하면 나타나요.';
+};
 </script>
 </body>
 </html>
