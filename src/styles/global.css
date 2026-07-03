@@ -136,6 +136,12 @@ main,
   max-width: 20ch;
 }
 
+.hero-sub {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
 .hero-actions {
   display: flex;
   gap: 12px;
@@ -324,11 +330,6 @@ main,
 }
 
 /* ── contact ──────────────────────────────────────────── */
-
-.contact-text {
-  color: var(--muted);
-  margin-bottom: 24px;
-}
 
 .contact-actions {
   display: flex;
