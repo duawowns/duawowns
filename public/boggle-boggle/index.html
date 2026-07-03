@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뽀글뽀글 · 클릭하면 죄송합니다</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; cursor: none; background: #1a1033; font-family: 'Segoe UI', sans-serif; }
+  #bg { position: fixed; inset: 0; transition: background 1.2s ease; z-index: 0; }
+  #hint { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.25); font-size: 14px; letter-spacing: 2px; pointer-events: none; z-index: 5; transition: opacity 0.6s; }
+  #hud { position: fixed; top: 0; left: 0; right: 0; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 10; pointer-events: none; }
+  .stat { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+  .stat .label { font-size: 11px; opacity: 0.5; letter-spacing: 3px; text-transform: uppercase; }
+  .stat .val { font-size: 32px; font-weight: 800; line-height: 1; }
+  #comboWrap { text-align: right; }
+  #comboVal { color: #ffd34e; }
+  #msg { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 22px; font-weight: 700; text-shadow: 0 2px 12px rgba(0,0,0,0.6); opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 10; white-space: nowrap; }
+  #msg.show { opacity: 1; }
+  canvas { position: fixed; inset: 0; z-index: 1; }
+  #cursor { position: fixed; width: 14px; height: 14px; border-radius: 50%; background: #fff; pointer-events: none; z-index: 100; transform: translate(-50%, -50%); mix-blend-mode: difference; transition: transform 0.08s; }
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<canvas id="c"></canvas>
+<div id="cursor"></div>
+<div id="hint">움직이고 · 클릭하고 · 멈추지 마세요</div>
+<div id="hud">
+  <div class="stat">
+    <div class="label">뽀글 포인트</div>
+    <div class="val" id="scoreVal">0</div>
+  </div>
+  <div class="stat" id="comboWrap">
+    <div class="label">콤보</div>
+    <div class="val" id="comboVal">0</div>
+  </div>
+</div>
+<div id="msg"></div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const bg = document.getElementById('bg');
+const scoreVal = document.getElementById('scoreVal');
+const comboVal = document.getElementById('comboVal');
+const msgEl = document.getElementById('msg');
+const hint = document.getElementById('hint');
+const cursor = document.getElementById('cursor');
+
+let W, H;
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+resize();
+addEventListener('resize', resize);
+
+const mouse = { x: innerWidth/2, y: innerHeight/2, down: false };
+addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; cursor.style.left = e.clientX+'px'; cursor.style.top = e.clientY+'px'; });
+addEventListener('touchmove', e => { const t=e.touches[0]; mouse.x=t.clientX; mouse.y=t.clientY; cursor.style.left=t.clientX+'px'; cursor.style.top=t.clientY+'px'; }, {passive:true});
+addEventListener('mousedown', pop);
+addEventListener('touchstart', e => { const t=e.touches[0]; mouse.x=t.clientX; mouse.y=t.clientY; pop(); }, {passive:true});
+
+// ---- Web Audio: 소리를 코드로 만든다 ----
+let actx;
+function initAudio() { if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)(); }
+function blip(freq, dur, type='sine', vol=0.15) {
+  if(!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime+dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(); o.stop(actx.currentTime+dur);
+}
+function chord() {
+  const base = 220 + Math.random()*200;
+  blip(base, 0.18, 'triangle', 0.12);
+  setTimeout(()=>blip(base*1.5, 0.14, 'sine', 0.08), 40);
+  setTimeout(()=>blip(base*2, 0.1, 'sine', 0.06), 80);
+}
+
+// ---- 생명체: 커서를 쫓는 스프링 물리 ----
+const pet = {
+  x: innerWidth/2, y: innerHeight/2, vx:0, vy:0,
+  r: 46, squish: 1, squishV: 0, mood: 'curious', blink: 0, nextBlink: 120,
+  hue: 280, wobble: 0
+};
+
+let score = 0, combo = 0, comboTimer = 0, best = 0;
+let shake = 0;
+
+const particles = [];
+
+const messages = {
+  0: ['안녕?', '나를 찾았군', '반가워', '뽀글?'],
+  5: ['오, 잘하는데?', '계속해!', '기분 좋은데?', '좀 더!'],
+  15: ['와 진짜?', '멈출 수 있어?', '나 좋아하는 거야?', '뽀글뽀글!'],
+  30: ['이미 중독됨', '그만... 이라고? 거짓말', '손가락이 기억함', '돌아가면 0점'],
+  60: ['이제 안 놓아줄게', '너와 나, 하나', '뽀글의 심연', '현실은 잠시 멈춤'],
+  100: ['뽀글 신이 됐어', '100... 전설이야', '이제 못 돌려', '영원히 뽀글']
+};
+
+function say(text) {
+  msgEl.textContent = text;
+  msgEl.classList.add('show');
+  clearTimeout(say._t);
+  say._t = setTimeout(()=>msgEl.classList.remove('show'), 1800);
+}
+function pickMsg() {
+  const tiers = Object.keys(messages).map(Number).sort((a,b)=>a-b);
+  let tier = 0;
+  for(const t of tiers) if(combo >= t) tier = t;
+  const arr = messages[tier];
+  say(arr[Math.floor(Math.random()*arr.length)]);
+}
+
+function pop() {
+  initAudio();
+  hint.style.opacity = 0;
+  combo++;
+  comboTimer = 140;
+  const pts = 1 + Math.floor(combo/5);
+  score += pts;
+  best = Math.max(best, combo);
+  scoreVal.textContent = score;
+  comboVal.textContent = combo;
+
+  // 찌그러뜨리기
+  pet.squishV -= 0.5;
+
+  // 파티클
+  const n = 6 + Math.min(combo, 30);
+  for(let i=0;i<n;i++){
+    const a = Math.random()*Math.PI*2, sp = 2+Math.random()*6;
+    particles.push({
+      x: pet.x, y: pet.y,
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+      life: 1, size: 3+Math.random()*6, hue: (pet.hue+Math.random()*60)%360
+    });
+  }
+  shake = Math.min(14, 2+combo*0.15);
+
+  // 색 변화
+  pet.hue = (260 + combo*7) % 360;
+  bg.style.background = `hsl(${(pet.hue+40)%360}, 50%, 12%)`;
+
+  chord();
+  if(combo % 5 === 0) pickMsg();
+}
+
+// 주기적으로 랜덤 말
+setInterval(()=>{ if(combo>0 && Math.random()<0.3) pickMsg(); }, 3500);
+
+function update() {
+  // 스프링으로 커서 추적
+  const dx = mouse.x - pet.x, dy = mouse.y - pet.y;
+  pet.vx += dx * 0.012; pet.vy += dy * 0.012;
+  pet.vx *= 0.86; pet.vy *= 0.86;
+  pet.x += pet.vx; pet.y += pet.vy;
+
+  // 찌그러짐 물리 (스프링)
+  pet.squishV += (1 - pet.squish) * 0.25;
+  pet.squishV *= 0.7;
+  pet.squish += pet.squishV;
+
+  // 흔들림
+  pet.wobble += 0.08;
+
+  // 깜빡임
+  pet.nextBlink--;
+  if(pet.nextBlink <= 0) { pet.blink = 8; pet.nextBlink = 80 + Math.random()*200; }
+  if(pet.blink>0) pet.blink--;
+
+  // 콤보 감소
+  if(comboTimer>0){ comboTimer--; if(comboTimer===0){ combo=0; comboVal.textContent='0'; pet.hue=280; bg.style.background='#1a1033'; say('...콤보 사라짐 ㅠ'); }}
+
+  // 파티클
+  for(let i=particles.length-1;i>=0;i--){
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.94; p.vy *= 0.94; p.vy += 0.15;
+    p.life -= 0.02;
+    if(p.life<=0) particles.splice(i,1);
+  }
+
+  shake *= 0.85;
+
+  // 속도에 따른 기분
+  const sp = Math.hypot(pet.vx, pet.vy);
+  pet.mood = sp > 6 ? 'excited' : (sp < 0.5 ? 'calm' : 'curious');
+}
+
+function drawPet() {
+  ctx.save();
+  const sx = (Math.random()-0.5)*shake, sy = (Math.random()-0.5)*shake;
+  ctx.translate(pet.x+sx, pet.y+sy);
+
+  const stretch = pet.squish;
+  const sqx = 1/stretch, sqy = stretch;
+
+  // 그림자
+  ctx.save();
+  ctx.translate(0, pet.r*0.9);
+  ctx.scale(1, 0.3);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.arc(0,0,pet.r*0.9,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+
+  // 몸 (둥근 젤리)
+  ctx.scale(sqx, sqy);
+  const g = ctx.createRadialGradient(-pet.r*0.3, -pet.r*0.4, pet.r*0.2, 0, 0, pet.r);
+  g.addColorStop(0, `hsl(${pet.hue}, 90%, 75%)`);
+  g.addColorStop(1, `hsl(${pet.hue}, 80%, 55%)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  // 살짝 출렁이는 원
+  for(let i=0;i<=24;i++){
+    const a = i/24*Math.PI*2;
+    const wob = Math.sin(a*3+pet.wobble)*2;
+    const rr = pet.r + wob;
+    const x = Math.cos(a)*rr, y = Math.sin(a)*rr;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // 하이라이트
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath(); ctx.ellipse(-pet.r*0.35, -pet.r*0.4, pet.r*0.25, pet.r*0.15, -0.5, 0, Math.PI*2); ctx.fill();
+
+  // 눈 (커서를 본다)
+  const eyeY = -pet.r*0.1;
+  const eyeDX = pet.r*0.28;
+  const eyeR = pet.r*0.18;
+  const lookX = Math.max(-1,Math.min(1,(mouse.x-pet.x)/100));
+  const lookY = Math.max(-1,Math.min(1,(mouse.y-pet.y)/100));
+
+  ctx.fillStyle = '#fff';
+  if(pet.blink>0) {
+    // 감은 눈
+    ctx.strokeStyle = '#2a1a4a'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(-eyeDX, eyeY, eyeR*0.7, 0, Math.PI, false); ctx.stroke();
+    ctx.beginPath(); ctx.arc(eyeDX, eyeY, eyeR*0.7, 0, Math.PI, false); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(-eyeDX, eyeY, eyeR, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(eyeDX, eyeY, eyeR, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#2a1a4a';
+    ctx.beginPath(); ctx.arc(-eyeDX+lookX*eyeR*0.4, eyeY+lookY*eyeR*0.4, eyeR*0.55, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(eyeDX+lookX*eyeR*0.4, eyeY+lookY*eyeR*0.4, eyeR*0.55, 0, Math.PI*2); ctx.fill();
+    // 하이라이트
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    ctx.beginPath(); ctx.arc(-eyeDX+lookX*eyeR*0.4-2, eyeY+lookY*eyeR*0.4-2, eyeR*0.18, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(eyeDX+lookX*eyeR*0.4-2, eyeY+lookY*eyeR*0.4-2, eyeR*0.18, 0, Math.PI*2); ctx.fill();
+  }
+
+  // 입 (기분에 따라)
+  ctx.strokeStyle = '#2a1a4a'; ctx.lineWidth = 3; ctx.lineCap='round';
+  ctx.beginPath();
+  const my = pet.r*0.25;
+  if(pet.mood==='excited') { ctx.arc(0, my, pet.r*0.18, 0, Math.PI); }
+  else if(pet.mood==='calm') { ctx.arc(0, my-4, pet.r*0.12, 0, Math.PI); }
+  else { ctx.arc(0, my, pet.r*0.12, 0.2, Math.PI-0.2); }
+  ctx.stroke();
+
+  // 볼터치
+  ctx.fillStyle = `hsla(${(pet.hue+330)%360}, 90%, 70%, 0.5)`;
+  ctx.beginPath(); ctx.arc(-pet.r*0.5, pet.r*0.15, pet.r*0.13, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(pet.r*0.5, pet.r*0.15, pet.r*0.13, 0, Math.PI*2); ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  for(const p of particles) {
+    ctx.fillStyle = `hsla(${p.hue}, 90%, 65%, ${p.life})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*p.life, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+function loop() {
+  ctx.clearRect(0,0,W,H);
+  update();
+  drawParticles();
+  drawPet();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
