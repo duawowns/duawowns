@@ -1,0 +1,131 @@
+---
+import Base from "../layouts/Base.astro";
+
+const projects = [
+  {
+    title: "Project A",
+    description: "보안 접근제어 검증 도구. 재현 조건 기반 테스트 자동화.",
+    tags: ["Security", "Networking", "Automation"],
+    year: "2025",
+  },
+  {
+    title: "Project B",
+    description: "ZTNA 정책 시뮬레이터. 정책 충돌 탐지와 영향도 분석.",
+    tags: ["ZTNA", "Policy"],
+    year: "2024",
+  },
+  {
+    title: "Project C",
+    description: "네트워크 인증 흐름 검증 프레임워크. 장비 간 상호운용성 테스트.",
+    tags: ["Auth", "Networking"],
+    year: "2024",
+  },
+];
+
+const experience = [
+  {
+    role: "Security Network Engineer",
+    org: "Company",
+    period: "2023 — present",
+    summary: "접근제어 정책 검증, 네트워크 트러블슈팅, 인증 흐름 설계.",
+  },
+  {
+    role: "Network Engineer",
+    org: "Company",
+    period: "2021 — 2023",
+    summary: "VPN/ZTNA 인프라 운영, 정책 감사 자동화.",
+  },
+];
+
+const skills = [
+  "ZTNA",
+  "VPN",
+  "Network Security",
+  "Access Control",
+  "Policy Verification",
+  "Python",
+  "Automation",
+  "Troubleshooting",
+];
+---
+
+<Base title="duawowns" description="duawowns — security & network engineer">
+  <section id="top" class="hero">
+    <p class="hero-eyebrow">security · network · access control</p>
+    <h1>접근제어 검증을 설계하고<br />재현 가능한 과정으로 남깁니다.</h1>
+    <div class="hero-actions">
+      <a class="btn" href="#work">work 보기</a>
+      <a class="btn btn-ghost" href="#contact">contact</a>
+    </div>
+  </section>
+
+  <section id="work" class="section">
+    <div class="section-head">
+      <span class="section-no">01</span>
+      <h2>work</h2>
+    </div>
+    <div class="project-grid">
+      {
+        projects.map((p) => (
+          <article class="project-card">
+            <div class="project-meta">
+              <span>{p.year}</span>
+            </div>
+            <h3>{p.title}</h3>
+            <p>{p.description}</p>
+            <ul class="tag-list">
+              {p.tags.map((tag) => (
+                <li>{tag}</li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="experience" class="section">
+    <div class="section-head">
+      <span class="section-no">02</span>
+      <h2>experience</h2>
+    </div>
+    <div class="timeline">
+      {
+        experience.map((e) => (
+          <article class="timeline-row">
+            <span class="timeline-period">{e.period}</span>
+            <div>
+              <h3>{e.role}</h3>
+              <span class="timeline-org">{e.org}</span>
+              <p>{e.summary}</p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="skills" class="section">
+    <div class="section-head">
+      <span class="section-no">03</span>
+      <h2>skills</h2>
+    </div>
+    <ul class="skills-list">
+      {skills.map((s) => <li>{s}</li>)}
+    </ul>
+  </section>
+
+  <section id="contact" class="section contact">
+    <div class="section-head">
+      <span class="section-no">04</span>
+      <h2>contact</h2>
+    </div>
+    <p class="contact-text">
+      질문·협업 제안은 언제든 welcome.
+    </p>
+    <div class="contact-actions">
+      <a class="btn" href="mailto:duawowns@gmail.com">이메일 보내기</a>
+      <a class="btn btn-ghost" href="https://github.com/duawowns" target="_blank" rel="noopener">github</a>
+    </div>
+  </section>
+</Base>

@@ -1,0 +1,44 @@
+---
+import "../styles/global.css";
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{Astro.props.title ?? "duawowns"}</title>
+    <meta
+      name="description"
+      content={Astro.props.description ?? "duawowns — portfolio"}
+    />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="nav-brand" href="/#top">duawowns</a>
+      <nav class="nav-links">
+        <a href="#work">work</a>
+        <a href="#experience">experience</a>
+        <a href="#skills">skills</a>
+        <a href="#contact">contact</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="footer">
+      <span>{new Date().getFullYear()} duawowns</span>
+      <span class="footer-links">
+        <a
+          href="https://github.com/duawowns"
+          target="_blank"
+          rel="noopener">github</a>
+        <a
+          href="mailto:duawowns@gmail.com"
+          target="_blank"
+          rel="noopener">email</a>
+      </span>
+    </footer>
+  </body>
+</html>
