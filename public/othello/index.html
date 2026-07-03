@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오셀로 · 젤리 크리처</title>
+<style>
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:#140c28;color:#fff;font-family:'Segoe UI',sans-serif;overflow:hidden;user-select:none;}
+#cv{position:fixed;inset:0;display:block;touch-action:none;}
+.top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;z-index:5;gap:10px;pointer-events:none;}
+.top>*{pointer-events:auto;}
+.top .left{display:flex;align-items:center;gap:10px;}
+.top .right{display:flex;align-items:center;gap:10px;}
+button.btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:8px 14px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;}
+button.btn:hover{background:rgba(255,255,255,0.2);}
+#counts{font-weight:800;font-size:15px;letter-spacing:.5px;white-space:nowrap;}
+#turn{font-size:13px;opacity:.85;white-space:nowrap;}
+#botFace{width:48px;height:48px;display:block;}
+.nar{position:fixed;bottom:0;left:0;right:0;text-align:center;padding:14px 12px 18px;z-index:5;background:linear-gradient(0deg,rgba(20,12,40,0.92),rgba(20,12,40,0));min-height:52px;}
+.nar #nar{font-size:16px;font-weight:700;letter-spacing:.3px;}
+.nar #narSub{display:block;font-size:11px;opacity:.55;font-weight:600;margin-top:4px;}
+.lb-btn{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:8px 16px;border-radius:20px;font-weight:800;cursor:pointer;font-size:13px;backdrop-filter:blur(4px);}
+.lb-btn:hover{background:rgba(255,255,255,0.2);}
+#lb{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(10,6,20,0.65);backdrop-filter:blur(6px);cursor:auto;}
+#lb.show{display:flex;}
+.lb-panel{background:#1c1438;border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:18px 20px;width:min(440px,92vw);max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.lb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+.lb-head b{font-size:16px;}
+.lb-head button{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1;}
+.lb-list{list-style:none;margin:0;padding:0;}
+.lb-list li{display:flex;gap:10px;align-items:center;padding:8px 4px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px;}
+.lb-r{width:28px;text-align:center;font-weight:800;}
+.lb-n{flex:1;}
+.lb-s{font-weight:700;}
+.lb-empty{opacity:.5;font-size:13px;justify-content:center;border:none!important;}
+.lb-submit{display:flex;gap:8px;margin-top:14px;}
+.lb-submit input{flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:8px;padding:9px 10px;font-size:14px;outline:none;}
+.lb-submit input:focus{border-color:#7c5cff;}
+.lb-submit button{background:#7c5cff;border:none;color:#fff;font-weight:800;border-radius:8px;padding:0 16px;cursor:pointer;font-size:13px;white-space:nowrap;}
+.lb-submit button:disabled{opacity:.4;cursor:default;}
+.lb-pred{font-size:12px;opacity:.75;margin-top:10px;text-align:center;min-height:16px;}
+.lb-note{font-size:11px;opacity:.4;margin-top:8px;text-align:center;line-height:1.5;}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="top">
+  <div class="left">
+    <button id="newBtn" class="btn">새 게임</button>
+    <span id="turn"></span>
+  </div>
+  <div class="right">
+    <span id="counts"></span>
+    <canvas id="botFace" width="48" height="48"></canvas>
+  </div>
+</div>
+<div class="nar"><div id="nar"></div><span id="narSub">클릭: 돌 놓기</span></div>
+
+<button id="lbBtn" class="lb-btn">🏆 순위</button>
+<div id="lb"><div class="lb-panel">
+<div class="lb-head"><b>오셀로 리더보드</b><button id="lbClose">✕</button></div>
+<ol id="lbList" class="lb-list"></ol>
+<div class="lb-pred" id="lbPred"></div>
+<div class="lb-submit"><input id="lbName" maxlength="12" placeholder="이름 (최대 12자)"><button id="lbSubmit" disabled>등록</button></div>
+<div class="lb-note">승리한 내 돌 수 기준(많을수록 위). 등록하면 GitHub 이슈가 열리고 봇이 반영해요.</div>
+</div></div>
+
+<script>
+const LB_GAME='othello',LB_FILE='leaderboard-othello.json',LB_REPO='duawowns/duawowns';
+let lbData=[],myScore=0,won=false;
+const lbBtn=document.getElementById('lbBtn'),lbEl=document.getElementById('lb'),lbList=document.getElementById('lbList'),lbName=document.getElementById('lbName'),lbSubmit=document.getElementById('lbSubmit'),lbPred=document.getElementById('lbPred');
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function openLB(){lbEl.classList.add('show');loadLB();}
+function closeLB(){lbEl.classList.remove('show');}
+lbBtn.onclick=openLB;document.getElementById('lbClose').onclick=closeLB;
+lbEl.addEventListener('click',e=>{if(e.target===lbEl)closeLB();});
+async function loadLB(){lbList.innerHTML='<li class="lb-empty">불러오는 중…</li>';try{const r=await fetch(LB_FILE,{cache:'no-store'});lbData=r.ok?await r.json():[];}catch(e){lbData=[];}renderLB();}
+function renderLB(){
+  if(!lbData.length)lbList.innerHTML='<li class="lb-empty">아직 아무도 없어. 첫 1위가 되세요.</li>';
+  else lbList.innerHTML=lbData.map((e,i)=>{const m=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);return `<li><span class="lb-r" style="color:#ffd34e">${m}</span><span class="lb-n">${esc(e.name)}</span><span class="lb-s" style="color:#ffd34e">${e.score}점</span></li>`;}).join('');
+  const rank=1+lbData.filter(e=>e.score>myScore).length;
+  lbPred.textContent=won?`지금 등록하면 예상 순위: ${rank}위 (전체 ${lbData.length}명)`:'이기면 등록할 수 있어요';
+  lbSubmit.disabled=!won;
+  lbSubmit.textContent=won?`내 ${myScore}점 등록하기`:'승리 필요';
+  if(lbEl.classList.contains('show')===false) lbPred.textContent;
+}
+lbSubmit.onclick=()=>{
+  const name=(lbName.value||'익명').trim().slice(0,12)||'익명';
+  const data={game:LB_GAME,score:myScore,name:name};
+  const body='<!-- 봇 전용 -->\n```json\n'+JSON.stringify(data)+'\n```\n점수 등록 부탁드려요!';
+  const title=`[${LB_GAME}] ${myScore}점 · ${name}`;
+  const url=`https://github.com/${LB_REPO}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+  window.open(url,'_blank');
+  lbPred.textContent='GitHub에서 Submit new issue를 누르면 등록돼요. 잠시 후 새로고침하면 나타나요.';
+};
+</script>
+<script>
+let actx;
+function initAudio(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); }
+function blip(f,d,type='sine',v=0.1){ if(!actx)return; const o=actx.createOscillator(),g=actx.createGain(); o.type=type;o.frequency.value=f; g.gain.setValueAtTime(v,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+d); o.connect(g);g.connect(actx.destination); o.start();o.stop(actx.currentTime+d); }
+function squeak(){ if(!actx)return; blip(880,0.07,'square',0.05); setTimeout(()=>blip(1320,0.06,'square',0.045),35); }
+
+const N=8;
+const DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+const WEIGHTS=[
+ [100,-20,10,5,5,10,-20,100],
+ [-20,-50,-2,-2,-2,-2,-50,-20],
+ [10,-2,1,1,1,1,-2,10],
+ [5,-2,1,1,1,1,-2,5],
+ [5,-2,1,1,1,1,-2,5],
+ [10,-2,1,1,1,1,-2,10],
+ [-20,-50,-2,-2,-2,-2,-50,-20],
+ [100,-20,10,5,5,10,-20,100]
+];
+
+let board,turn,gameOver,anims={},hoverCell=null,aiThinking=false,botMood='neutral';
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+const botCv=document.getElementById('botFace');
+const botCtx=botCv.getContext('2d');
+const countEl=document.getElementById('counts');
+const turnEl=document.getElementById('turn');
+const narEl=document.getElementById('nar');
+const narSubEl=document.getElementById('narSub');
+const newBtn=document.getElementById('newBtn');
+let cell=60,bx=0,by=0,bsize=0;
+
+function inB(r,c){return r>=0&&r<N&&c>=0&&c<N;}
+function clone(b){return b.map(row=>row.slice());}
+function getFlips(b,r,c,p){
+  const op=p===1?2:1;const flips=[];
+  for(let i=0;i<DIRS.length;i++){
+    const dr=DIRS[i][0],dc=DIRS[i][1];const line=[];let rr=r+dr,cc=c+dc;
+    while(inB(rr,cc)&&b[rr][cc]===op){line.push([rr,cc]);rr+=dr;cc+=dc;}
+    if(inB(rr,cc)&&b[rr][cc]===p&&line.length){for(let k=0;k<line.length;k++)flips.push(line[k]);}
+  }
+  return flips;
+}
+function getLegalMoves(b,p){
+  const moves=[];
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    if(b[r][c]!==0)continue;
+    const f=getFlips(b,r,c,p);
+    if(f.length)moves.push({r:r,c:c,flips:f});
+  }
+  return moves;
+}
+function applyMove(b,r,c,p){
+  const nb=clone(b);nb[r][c]=p;
+  const f=getFlips(b,r,c,p);
+  for(let i=0;i<f.length;i++){nb[f[i][0]][f[i][1]]=p;}
+  return {nb:nb,flips:f};
+}
+function cnt(b,p){const o=p===1?2:1;let my=0,oth=0;for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(b[r][c]===p)my++;else if(b[r][c]===o)oth++;}return{my:my,oth:oth};}
+function countDiscs(){let b=0,w=0;for(let r=0;r<N;r++)for(let c=0;c<N;c++){if(board[r][c]===1)b++;else if(board[r][c]===2)w++;}return{b:b,w:w};}
+
+function evalBoard(b,rootP){
+  const op=rootP===1?2:1;let my=0,oth=0,pos=0;
+  for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+    if(b[r][c]===rootP){my++;pos+=WEIGHTS[r][c];}
+    else if(b[r][c]===op){oth++;pos-=WEIGHTS[r][c];}
+  }
+  const myMob=getLegalMoves(b,rootP).length;
+  const opMob=getLegalMoves(b,op).length;
+  return (my-oth)+pos+(myMob-opMob)*3;
+}
+function minimax(b,depth,alpha,beta,maxing,p,rootP){
+  const op=p===1?2:1;
+  const moves=getLegalMoves(b,p);
+  if(depth===0)return evalBoard(b,rootP);
+  if(moves.length===0){
+    if(getLegalMoves(b,op).length===0){
+      const d=cnt(b,rootP);return d.my>d.oth?10000:d.my<d.oth?-10000:0;
+    }
+    return minimax(b,depth,alpha,beta,maxing,op,rootP);
+  }
+  if(maxing){
+    let best=-Infinity;
+    for(let i=0;i<moves.length;i++){
+      const m=moves[i];const r=applyMove(b,m.r,m.c,p);
+      const v=minimax(r.nb,depth-1,alpha,beta,false,op,rootP);
+      if(v>best)best=v;
+      if(v>alpha)alpha=v;
+      if(beta<=alpha)break;
+    }
+    return best;
+  }else{
+    let best=Infinity;
+    for(let i=0;i<moves.length;i++){
+      const m=moves[i];const r=applyMove(b,m.r,m.c,p);
+      const v=minimax(r.nb,depth-1,alpha,beta,true,op,rootP);
+      if(v<best)best=v;
+      if(v<beta)beta=v;
+      if(beta<=alpha)break;
+    }
+    return best;
+  }
+}
+function bestMove(b,p,depth){
+  const rootP=p;const op=p===1?2:1;
+  const moves=getLegalMoves(b,p);
+  if(!moves.length)return null;
+  let best=-Infinity,bm=moves[0];
+  for(let i=0;i<moves.length;i++){
+    const m=moves[i];const r=applyMove(b,m.r,m.c,p);
+    const v=minimax(r.nb,depth-1,-Infinity,Infinity,false,op,rootP);
+    if(v>best){best=v;bm=m;}
+  }
+  return bm;
+}
+
+function narrate(t,sub){narEl.textContent=t;if(sub!==undefined)narSubEl.textContent=sub;}
+
+function placeDisc(r,c,p,flips){
+  board[r][c]=p;
+  const now=performance.now();
+  anims[r+','+c]={type:'pop',start:now,dur:220,from:p,to:p};
+  for(let i=0;i<flips.length;i++){
+    const fr=flips[i][0],fc=flips[i][1];const op=p===1?2:1;
+    anims[fr+','+fc]={type:'flip',start:now+Math.random()*70,from:op,to:p,dur:260};
+    board[fr][fc]=p;
+  }
+}
+
+function updateCounts(){
+  const d=countDiscs();
+  countEl.textContent='⚫ '+d.b+'  :  '+d.w+' ⚪';
+  myScore=d.b;
+  if(typeof renderLB==='function')renderLB();
+}
+
+function endGame(){
+  gameOver=true;aiThinking=false;
+  const d=countDiscs();myScore=d.b;
+  if(d.b>d.w){won=true;narrate('오셀로 신!');botMood='sad';}
+  else if(d.b<d.w){won=false;narrate('배신자. 봇돌이 승.');botMood='win';}
+  else{won=false;narrate('무승부. 어처구니.');botMood='neutral';}
+  narSubEl.textContent='새 게임을 눌러 다시.';
+  updateCounts();
+}
+
+function advanceTurn(){
+  turn=turn===1?2:1;
+  const me=turn;
+  const myMoves=getLegalMoves(board,me);
+  if(myMoves.length===0){
+    const otherMoves=getLegalMoves(board,me===1?2:1);
+    if(otherMoves.length===0){endGame();return;}
+    narrate(me===1?'막혔네. 패스.':'봇돌이도 막힘. 패스.');
+    turn=me===1?2:1;
+  }
+  if(turn===2){aiThinking=true;botMood='think';narrate('봇돌이가 간다…');setTimeout(aiMove,620);}
+  else if(!gameOver){botMood='neutral';}
+}
+
+function playerMove(r,c){
+  if(turn!==1||gameOver||aiThinking)return;
+  const moves=getLegalMoves(board,1);
+  const m=moves.find(mv=>mv.r===r&&mv.c===c);
+  if(!m)return;
+  placeDisc(r,c,1,m.flips);
+  blip(300,0.13,'sine',0.13);
+  setTimeout(squeak,50);
+  if(m.flips.length>=4){narrate('오!');botMood='angry';}
+  else if(m.flips.length>=2){narrate('좀 치네.');botMood='angry';}
+  else{narrate('흠.');}
+  updateCounts();
+  setTimeout(advanceTurn,320);
+}
+
+function aiMove(){
+  const m=bestMove(board,2,3);
+  if(m){
+    const flips=getFlips(board,m.r,m.c,2);
+    placeDisc(m.r,m.c,2,flips);
+    blip(520,0.13,'triangle',0.1);
+    setTimeout(squeak,50);
+    if(flips.length>=4){narrate('아파?');botMood='happy';}
+    else if(flips.length>=2){narrate('이 정도.');botMood='happy';}
+    else{narrate('조용히.');}
+    updateCounts();
+  }
+  aiThinking=false;
+  setTimeout(advanceTurn,320);
+}
+
+function newGame(){
+  board=Array.from({length:N},()=>Array(N).fill(0));
+  board[3][3]=2;board[3][4]=1;board[4][3]=1;board[4][4]=2;
+  turn=1;gameOver=false;anims={};aiThinking=false;botMood='neutral';hoverCell=null;
+  narrate('클릭해서 돌을 놔봐.','⚫ 네가 흑 · 봇돌이가 백');
+  updateCounts();
+}
+
+function resize(){
+  cv.width=innerWidth;cv.height=innerHeight;
+  const maxW=innerWidth-32,maxH=innerHeight-180;
+  cell=Math.floor(Math.min(maxW/N,maxH/N));
+  if(cell<20)cell=20;
+  bsize=cell*N;
+  bx=Math.floor((innerWidth-bsize)/2);
+  by=92+Math.floor(Math.max(0,(innerHeight-92-88-bsize)/2));
+}
+addEventListener('resize',resize);
+
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+
+function drawJelly(x,y,rad,color,sy,sx){
+  ctx.save();
+  ctx.translate(x,y);
+  const sxy=Math.max(0.05,sy);
+  ctx.scale(sx!==undefined?Math.max(0.05,sx):1,sxy);
+  const grad=ctx.createRadialGradient(-rad*0.25,-rad*0.3,rad*0.1,0,0,rad);
+  if(color===1){grad.addColorStop(0,'#6a44a8');grad.addColorStop(1,'#1c0f3a');}
+  else{grad.addColorStop(0,'#ece0ff');grad.addColorStop(1,'#7c5cff');}
+  ctx.fillStyle=grad;
+  ctx.beginPath();ctx.arc(0,0,rad,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.beginPath();ctx.ellipse(-rad*0.32,-rad*0.36,rad*0.26,rad*0.14,-0.4,0,Math.PI*2);ctx.fill();
+  const ex=rad*0.3,ey=-rad*0.05,er=rad*0.17;
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-ex,ey,er,0,Math.PI*2);ctx.arc(ex,ey,er,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#160a2e';
+  ctx.beginPath();ctx.arc(-ex+rad*0.04,ey,er*0.52,0,Math.PI*2);ctx.arc(ex+rad*0.04,ey,er*0.52,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#160a2e';ctx.lineWidth=Math.max(1,rad*0.07);ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(0,rad*0.22,rad*0.22,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
+  ctx.restore();
+}
+
+function drawBotFace(){
+  botCtx.clearRect(0,0,botCv.width,botCv.height);
+  const cx=24,cy=24,r=20;
+  botCtx.save();botCtx.translate(cx,cy);
+  const g=botCtx.createRadialGradient(-r*0.3,-r*0.3,r*0.1,0,0,r);
+  g.addColorStop(0,'#9b7cff');g.addColorStop(1,'#5a3ad0');
+  botCtx.fillStyle=g;botCtx.beginPath();botCtx.arc(0,0,r,0,Math.PI*2);botCtx.fill();
+  const ex=7,ey=-3,er=4.5;
+  botCtx.strokeStyle='#fff';botCtx.fillStyle='#fff';botCtx.lineWidth=2;botCtx.lineCap='round';
+  if(botMood==='happy'||botMood==='win'){
+    botCtx.beginPath();botCtx.arc(-ex,ey+1,er*0.9,Math.PI,0);botCtx.arc(ex,ey+1,er*0.9,Math.PI,0);botCtx.stroke();
+  }else if(botMood==='sad'){
+    botCtx.beginPath();botCtx.arc(-ex,ey,er,0,Math.PI*2);botCtx.arc(ex,ey,er,0,Math.PI*2);botCtx.fill();
+    botCtx.fillStyle='#160a2e';botCtx.beginPath();botCtx.arc(-ex,ey+2,er*0.5,0,Math.PI*2);botCtx.arc(ex,ey+2,er*0.5,0,Math.PI*2);botCtx.fill();
+  }else if(botMood==='think'){
+    botCtx.beginPath();botCtx.arc(-ex,ey,er,0,Math.PI*2);botCtx.arc(ex,ey,er,0,Math.PI*2);botCtx.fill();
+    botCtx.fillStyle='#160a2e';botCtx.beginPath();botCtx.arc(-ex,ey-2,er*0.5,0,Math.PI*2);botCtx.arc(ex,ey-2,er*0.5,0,Math.PI*2);botCtx.fill();
+  }else if(botMood==='angry'){
+    botCtx.beginPath();botCtx.arc(-ex,ey,er,0,Math.PI*2);botCtx.arc(ex,ey,er,0,Math.PI*2);botCtx.fill();
+    botCtx.strokeStyle='#160a2e';botCtx.lineWidth=2;
+    botCtx.beginPath();botCtx.moveTo(-ex-er,ey-er*0.7);botCtx.lineTo(-ex+er*0.4,ey);botCtx.moveTo(ex+er,ey-er*0.7);botCtx.lineTo(ex-er*0.4,ey);botCtx.stroke();
+  }else{
+    botCtx.beginPath();botCtx.arc(-ex,ey,er,0,Math.PI*2);botCtx.arc(ex,ey,er,0,Math.PI*2);botCtx.fill();
+    botCtx.fillStyle='#160a2e';botCtx.beginPath();botCtx.arc(-ex,ey,er*0.5,0,Math.PI*2);botCtx.arc(ex,ey,er*0.5,0,Math.PI*2);botCtx.fill();
+  }
+  botCtx.strokeStyle='#160a2e';botCtx.lineWidth=2;
+  botCtx.beginPath();
+  if(botMood==='happy'||botMood==='win'){botCtx.arc(0,7,7,0.1*Math.PI,0.9*Math.PI);}
+  else if(botMood==='sad'){botCtx.arc(0,15,7,1.1*Math.PI,1.9*Math.PI);}
+  else if(botMood==='angry'){botCtx.moveTo(-6,10);botCtx.lineTo(6,8);}
+  else{botCtx.moveTo(-5,9);botCtx.lineTo(5,9);}
+  botCtx.stroke();
+  botCtx.restore();
+}
+
+function draw(){
+  ctx.clearRect(0,0,cv.width,cv.height);
+  const now=performance.now();
+  if(bsize>0){
+    ctx.fillStyle='#0a0418';
+    roundRect(ctx,bx-10,by-10,bsize+20,bsize+20,14);ctx.fill();
+    ctx.strokeStyle='rgba(124,92,255,0.25)';ctx.lineWidth=2;ctx.stroke();
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      const x=bx+c*cell,y=by+r*cell;
+      ctx.fillStyle=(((r+c)&1))?'#2c1d52':'#241642';
+      ctx.fillRect(x,y,cell,cell);
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=1;
+    for(let i=0;i<=N;i++){
+      ctx.beginPath();ctx.moveTo(bx+i*cell,by);ctx.lineTo(bx+i*cell,by+bsize);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(bx,by+i*cell);ctx.lineTo(bx+bsize,by+i*cell);ctx.stroke();
+    }
+    if(turn===1&&!gameOver&&!aiThinking){
+      const moves=getLegalMoves(board,1);
+      for(let i=0;i<moves.length;i++){
+        const m=moves[i];const x=bx+m.c*cell,y=by+m.r*cell;
+        ctx.fillStyle='rgba(124,92,255,0.13)';ctx.fillRect(x,y,cell,cell);
+        ctx.strokeStyle='rgba(200,170,255,0.25)';ctx.lineWidth=1;ctx.strokeRect(x+1,y+1,cell-2,cell-2);
+      }
+      if(hoverCell){
+        const m=moves.find(mv=>mv.r===hoverCell.r&&mv.c===hoverCell.c);
+        if(m){
+          ctx.globalAlpha=0.4;
+          drawJelly(bx+m.c*cell+cell/2,by+m.r*cell+cell/2,cell*0.38,1,1,1);
+          ctx.globalAlpha=1;
+        }
+      }
+    }
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+      if(board[r][c]===0)continue;
+      const key=r+','+c;const a=anims[key];
+      const x=bx+c*cell+cell/2,y=by+r*cell+cell/2;
+      let color=board[r][c];let sy=1,sx=1;
+      if(a){
+        const t=(now-a.start)/a.dur;
+        if(t>=1){delete anims[key];color=board[r][c];sy=1;sx=1;}
+        else if(t<=0){color=a.from;sy=1;sx=1;}
+        else if(a.type==='flip'){color=t<0.5?a.from:a.to;sy=Math.abs(Math.cos(t*Math.PI));sx=1;}
+        else{color=a.to;const e=1-Math.pow(1-t,3);sy=e;sx=e;}
+      }
+      drawJelly(x,y,cell*0.38,color,sy,sx);
+    }
+  }
+  drawBotFace();
+  const ti=gameOver?'종료':(aiThinking?'봇돌이 생각 중…':(turn===1?'네 차례':'봇돌이 차례'));
+  if(turnEl.textContent!==ti)turnEl.textContent=ti;
+  requestAnimationFrame(draw);
+}
+
+cv.addEventListener('click',e=>{
+  initAudio();
+  if(gameOver||aiThinking||turn!==1)return;
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const c=Math.floor((mx-bx)/cell),r=Math.floor((my-by)/cell);
+  if(inB(r,c))playerMove(r,c);
+});
+cv.addEventListener('mousemove',e=>{
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const c=Math.floor((mx-bx)/cell),r=Math.floor((my-by)/cell);
+  if(inB(r,c))hoverCell={r:r,c:c};else hoverCell=null;
+  let legal=false;
+  if(!gameOver&&!aiThinking&&turn===1&&inB(r,c)){
+    legal=getLegalMoves(board,1).some(mv=>mv.r===r&&mv.c===c);
+  }
+  cv.style.cursor=legal?'pointer':'default';
+});
+cv.addEventListener('mouseleave',()=>{hoverCell=null;cv.style.cursor='default';});
+
+newBtn.onclick=()=>{initAudio();newGame();};
+
+resize();newGame();requestAnimationFrame(draw);
+</script>
+</body>
+</html>

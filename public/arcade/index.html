@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>두아운 아케이드 · 놀라게 하라</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:100%; min-height:100%; background:#140c28; color:#fff; font-family:'Segoe UI',sans-serif; overflow-x:hidden; }
+  canvas#bg { position:fixed; inset:0; z-index:0; }
+  .wrap { position:relative; z-index:2; padding:56px 24px 80px; max-width:1080px; margin:0 auto; }
+  .eyebrow { font-size:12px; letter-spacing:4px; opacity:.5; text-transform:uppercase; text-align:center; }
+  h1 { font-size:clamp(40px,9vw,84px); font-weight:900; text-align:center; letter-spacing:-2px; margin-top:6px; line-height:1; }
+  h1 .glow { background:linear-gradient(120deg,#7c5cff,#ff7ad9,#7ad7ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub { text-align:center; opacity:.6; margin-top:14px; font-size:15px; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px; margin-top:42px; perspective:1200px; }
+  .card { position:relative; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:18px; padding:24px 18px 20px; text-align:center; cursor:pointer; transition:transform .12s ease, box-shadow .2s; transform-style:preserve-3d; text-decoration:none; color:#fff; overflow:hidden; }
+  .card:hover { box-shadow:0 24px 50px rgba(124,92,255,0.25); border-color:rgba(124,92,255,0.5); }
+  .card .mascot { height:84px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; }
+  .card h2 { font-size:20px; font-weight:800; }
+  .card .tag { font-size:12px; opacity:.55; margin-top:6px; min-height:30px; }
+  .card .play { margin-top:14px; display:inline-block; font-size:13px; font-weight:800; color:#0c0820; background:#fff; padding:8px 16px; border-radius:20px; }
+  .card:hover .play { background:#ffd34e; }
+  .rand { display:block; margin:34px auto 0; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); color:#fff; font-weight:800; font-size:14px; padding:12px 22px; border-radius:24px; cursor:pointer; transition:.15s; }
+  .rand:hover { background:rgba(255,255,255,0.18); transform:scale(1.03); }
+  .hof { margin-top:64px; }
+  .hof h2 { text-align:center; font-size:26px; font-weight:900; letter-spacing:-1px; }
+  .hof .sub2 { text-align:center; opacity:.5; font-size:13px; margin-top:6px; }
+  .podiums { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:28px; }
+  .pod { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:16px 14px; }
+  .pod .pname { font-size:14px; font-weight:800; text-align:center; margin-bottom:12px; opacity:.9; }
+  .pod .prow { display:flex; align-items:flex-end; justify-content:center; gap:8px; height:120px; }
+  .pd { width:30%; max-width:64px; text-align:center; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:6px 4px; display:flex; flex-direction:column; justify-content:flex-end; }
+  .pd .r { font-size:18px; }
+  .pd .n { font-size:11px; margin:2px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pd .s { font-size:12px; font-weight:800; }
+  .pd.p1 { height:118px; border-color:#ffd34e; background:rgba(255,211,78,0.12); }
+  .pd.p2 { height:96px; }
+  .pd.p3 { height:78px; }
+  .pod .empty { text-align:center; opacity:.4; font-size:12px; padding:30px 0; }
+  .foot { text-align:center; opacity:.3; font-size:11px; margin-top:56px; }
+  /* 마스코트 애니메이션 */
+  @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes flip { 0%,100%{transform:rotateY(0)} 50%{transform:rotateY(180deg)} }
+  .m-boggle { width:54px; height:54px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#b9a3ff,#7c5cff); position:relative; animation:bob 1.6s ease-in-out infinite; box-shadow:0 8px 18px rgba(124,92,255,.4); }
+  .m-boggle::before,.m-boggle::after{content:'';position:absolute;width:8px;height:8px;background:#fff;border-radius:50%;top:34%}
+  .m-boggle::before{left:26%} .m-boggle::after{right:26%}
+  .m-mine { width:50px; height:50px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#e0a3ff,#c44ff0); position:relative; animation:bob 1.8s ease-in-out infinite; }
+  .m-mine::before,.m-mine::after{content:'';position:absolute;width:8px;height:8px;background:#fff;border-radius:50%;top:34%}
+  .m-mine::before{left:26%} .m-mine::after{right:26%}
+  .m-mine .fuse{position:absolute;left:50%;top:-12px;width:2px;height:12px;background:#3a2a1a;transform:translateX(-50%) rotate(20deg)}
+  .m-mine .fuse::after{content:'';position:absolute;top:-4px;left:0;width:6px;height:6px;border-radius:50%;background:#ffb347;box-shadow:0 0 8px #ffb347}
+  .m-oth .disc{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#bcc0d6);animation:flip 2.2s ease-in-out infinite;transform-style:preserve-3d;box-shadow:0 6px 14px rgba(0,0,0,.4)}
+  .m-sud { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; width:54px; height:54px; }
+  .m-sud span{background:rgba(255,255,255,0.12);border-radius:3px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:800}
+  .m-sud span.g{background:rgba(124,92,255,0.4)}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="wrap">
+  <div class="eyebrow">(00) · 놀라게 하라</div>
+  <h1><span class="glow" data-scramble>DUAWONS ARCADE</span></h1>
+  <p class="sub">URL을 치지 마세요. 마음에 드는 걸 고르면 됩니다.</p>
+
+  <div class="cards" id="cards">
+    <a class="card" href="../boggle-boggle/" data-tilt>
+      <div class="mascot"><div class="m-boggle"></div></div>
+      <h2>뽀글뽀글</h2>
+      <div class="tag">커서를 쫓는 젤리. 클릭할수록 중독.</div>
+      <span class="play">플레이 →</span>
+    </a>
+    <a class="card" href="../mine-friend/" data-tilt>
+      <div class="mascot"><div class="m-mine"><span class="fuse"></span></div></div>
+      <h2>지뢰친구</h2>
+      <div class="tag">귀여운 생명체는 사실 변장한 폭탄.</div>
+      <span class="play">플레이 →</span>
+    </a>
+    <a class="card" href="../othello/" data-tilt>
+      <div class="mascot"><div class="m-oth"><div class="disc"></div></div></div>
+      <h2>오셀로</h2>
+      <div class="tag">뒤집히면 비명을 지르는 젤리 돌.</div>
+      <span class="play">플레이 →</span>
+    </a>
+    <a class="card" href="../sudoku/" data-tilt>
+      <div class="mascot"><div class="m-sud"><span class="g">5</span><span>3</span><span>7</span><span>6</span><span class="g">9</span><span>1</span><span>8</span><span>2</span><span class="g">4</span></div></div>
+      <h2>스도쿠</h2>
+      <div class="tag">칸마다 생명체. 줄이 완성되면 춤을 춘다.</div>
+      <span class="play">플레이 →</span>
+    </a>
+  </div>
+
+  <button class="rand" id="rand">🎲 오늘의 무작위 게임</button>
+
+  <section class="hof">
+    <h2>명예의 전당</h2>
+    <p class="sub2">전 게임의 역대 챔피언 · 점수를 올리면 이곳에 새겨집니다</p>
+    <div class="podiums" id="podiums"></div>
+  </section>
+
+  <p class="foot">duawowns arcade · 정적 사이트인데 살아 있다</p>
+</div>
+
+<script>
+// ---- 배경: 파티클 + 커서를 쫓는 큰 젤리 ----
+const cv=document.getElementById('bg'),ctx=cv.getContext('2d');
+let W,H; function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;} resize(); addEventListener('resize',resize);
+const mouse={x:innerWidth/2,y:innerHeight/2};
+addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+const big={x:innerWidth/2,y:innerHeight/2,vx:0,vy:0,r:60,hue:280};
+const parts=[];
+for(let i=0;i<46;i++)parts.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,r:2+Math.random()*4,hue:260+Math.random()*80,a:.1+Math.random()*.3});
+function bgLoop(){
+  ctx.clearRect(0,0,W,H);
+  // 파티클
+  for(const p of parts){ p.x+=p.vx;p.y+=p.vy; if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    ctx.fillStyle=`hsla(${p.hue},80%,65%,${p.a})`; ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill(); }
+  // 큰 젤리 (커서 추적)
+  const dx=mouse.x-big.x,dy=mouse.y-big.y; big.vx+=dx*0.01;big.vy+=dy*0.01; big.vx*=.88;big.vy*=.88; big.x+=big.vx;big.y+=big.vy;
+  big.hue=(big.hue+0.3)%360;
+  const g=ctx.createRadialGradient(big.x-big.r*.3,big.y-big.r*.3,big.r*.2,big.x,big.y,big.r);
+  g.addColorStop(0,`hsla(${big.hue},90%,75%,0.5)`); g.addColorStop(1,`hsla(${big.hue},80%,55%,0)`);
+  ctx.fillStyle=g; ctx.beginPath();ctx.arc(big.x,big.y,big.r,0,Math.PI*2);ctx.fill();
+  requestAnimationFrame(bgLoop);
+}
+bgLoop();
+
+// ---- 카드 3D 틸트 ----
+document.querySelectorAll('[data-tilt]').forEach(c=>{
+  c.addEventListener('mousemove',e=>{
+    const r=c.getBoundingClientRect();
+    const px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5;
+    c.style.transform=`rotateY(${px*16}deg) rotateX(${-py*16}deg) translateY(-4px)`;
+  });
+  c.addEventListener('mouseleave',()=>c.style.transform='');
+});
+
+// ---- 무작위 게임 ----
+const games=['../boggle-boggle/','../mine-friend/','../othello/','../sudoku/'];
+document.getElementById('rand').onclick=()=>location.href=games[Math.floor(Math.random()*games.length)];
+
+// ---- 타이틀 스크램블 ----
+const sc=document.querySelector('[data-scramble]'); const target=sc.textContent; const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ01';
+let st=0; const inter=setInterval(()=>{ sc.textContent=target.split('').map((ch,i)=>i<st?ch:(ch===' '?' ':chars[Math.floor(Math.random()*chars.length)])).join(''); st++; if(st>=target.length)clearInterval(inter); },40);
+
+// ---- 명예의 전당 ----
+const LB=[
+  {game:'boggle', name:'뽀글뽀글', file:'../boggle-boggle/leaderboard-boggle.json', sort:'desc', unit:'점', col:'#ffd34e'},
+  {game:'othello',name:'오셀로',   file:'../othello/leaderboard-othello.json',    sort:'desc', unit:'점', col:'#ffd34e'},
+  {game:'mine',   name:'지뢰친구', file:'../mine-friend/leaderboard-mine.json',    sort:'asc',  unit:'초', col:'#7ad7ff'},
+  {game:'sudoku', name:'스도쿠',   file:'../sudoku/leaderboard-sudoku.json',      sort:'asc',  unit:'초', col:'#7ad7ff'},
+];
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmt(e,lb){return lb.sort==='desc'?`${e.score}${lb.unit}`:`${e.time}${lb.unit}`;}
+async function loadHOF(){
+  const root=document.getElementById('podiums');
+  root.innerHTML=LB.map(lb=>`<div class="pod" data-g="${lb.game}"><div class="pname">${lb.name}</div><div class="empty">불러오는 중…</div></div>`).join('');
+  await Promise.all(LB.map(async lb=>{
+    let data=[]; try{ const r=await fetch(lb.file,{cache:'no-store'}); if(r.ok) data=await r.json(); }catch(e){}
+    const pod=root.querySelector(`.pod[data-g="${lb.game}"]`);
+    if(!data.length){ pod.innerHTML=`<div class="pname">${lb.name}</div><div class="empty">아직 챔피언 없음. 첫 1위가 되세요.</div>`; return; }
+    const top3=data.slice(0,3);
+    const order=[top3[1],top3[0],top3[2]].filter(x=>x); // 2,1,3
+    const cls=['p2','p1','p3'], medals=['🥈','🥇','🥉'];
+    pod.innerHTML=`<div class="pname">${lb.name}</div><div class="prow">${order.map((e,i)=>`<div class="pd ${cls[i]}"><div class="r">${medals[i]}</div><div class="n">${esc(e.name)}</div><div class="s" style="color:${lb.col}">${fmt(e,lb)}</div></div>`).join('')}</div>`;
+  }));
+}
+loadHOF();
+</script>
+</body>
+</html>
