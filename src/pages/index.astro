@@ -1,0 +1,119 @@
+---
+import Base from "../layouts/Base.astro";
+
+const projects = [
+  {
+    title: "Project A",
+    description: "보안 접근제어 검증 도구. 재현 조건 기반 테스트 자동화.",
+    tags: ["Security", "Automation"],
+    year: "2025",
+  },
+  {
+    title: "Project B",
+    description: "ZTNA 정책 시뮬레이터. 정책 충돌 탐지와 영향도 분석.",
+    tags: ["ZTNA", "Policy"],
+    year: "2024",
+  },
+  {
+    title: "Project C",
+    description: "네트워크 인증 흐름 검증 프레임워크. 장비 간 상호운용성 테스트.",
+    tags: ["Auth", "Networking"],
+    year: "2024",
+  },
+];
+
+const experience = [
+  {
+    role: "Security Network Engineer",
+    org: "Company",
+    period: "2023 — now",
+    summary: "접근제어 정책 검증, 네트워크 트러블슈팅, 인증 흐름 설계.",
+  },
+  {
+    role: "Network Engineer",
+    org: "Company",
+    period: "2021 — 2023",
+    summary: "VPN/ZTNA 인프라 운영, 정책 감사 자동화.",
+  },
+];
+---
+
+<Base title="duawowns" description="duawowns — security & network engineer">
+  <section id="top" class="hero">
+    <p class="hero-eyebrow">
+      <span>(01)</span> security · network · access control
+    </p>
+    <h1 data-scramble>duawowns.</h1>
+    <div class="hero-bottom">
+      <div class="hero-tags">
+        <span>ZTNA</span><span>VPN</span><span>Auth</span><span>Policy</span>
+      </div>
+      <span class="scroll-cue">↓ scroll</span>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>security</span><span>network</span><span>access control</span>
+      <span>policy verification</span><span>troubleshooting</span>
+      <span>security</span><span>network</span><span>access control</span>
+      <span>policy verification</span><span>troubleshooting</span>
+    </div>
+  </div>
+
+  <section id="work" class="section">
+    <div class="section-head reveal">
+      <span class="section-no">(02) / work</span>
+      <h2>selected projects</h2>
+    </div>
+    <div class="project-list">
+      {
+        projects.map((p, i) => (
+          <article class="project-row reveal">
+            <span class="project-no">{String(i + 1).padStart(2, "0")}</span>
+            <h3 class="project-title">{p.title}</h3>
+            <div class="project-tags">
+              {p.tags.map((t) => (
+                <span>{t}</span>
+              ))}
+            </div>
+            <span class="project-year">{p.year}</span>
+            <p class="project-desc">{p.description}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="experience" class="section">
+    <div class="section-head reveal">
+      <span class="section-no">(03) / experience</span>
+      <h2>career</h2>
+    </div>
+    <div class="timeline">
+      {
+        experience.map((e) => (
+          <article class="timeline-row reveal">
+            <span class="timeline-period">{e.period}</span>
+            <div class="timeline-body">
+              <h3>{e.role}</h3>
+              <span class="timeline-org">{e.org}</span>
+              <p>{e.summary}</p>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="contact" class="contact">
+    <p class="contact-lead reveal">
+      <a href="mailto:duawowns@gmail.com">let's talk.</a>
+    </p>
+    <div class="reveal" style="font-family: var(--mono); font-size: 0.82rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;">
+      <a href="https://github.com/duawowns" target="_blank" rel="noopener">↗ github</a>
+      &nbsp;·&nbsp;
+      <a href="mailto:duawowns@gmail.com">✉ email</a>
+    </div>
+  </section>
+</Base>

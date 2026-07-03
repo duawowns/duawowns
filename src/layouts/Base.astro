@@ -1,0 +1,99 @@
+---
+import "../styles/global.css";
+
+const base = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
+    <title>{Astro.props.title ?? "duawowns"}</title>
+    <meta
+      name="description"
+      content={Astro.props.description ?? "duawowns — portfolio"}
+    />
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="cursor" id="cursor" aria-hidden="true"></div>
+
+    <header class="nav">
+      <a class="nav-brand" href="#top">duawowns</a>
+      <nav class="nav-links">
+        <a href="#work">work</a>
+        <a href="#experience">experience</a>
+        <a href="#contact">contact</a>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="footer">
+      <span>{new Date().getFullYear()}</span>
+      <a class="footer-mail" href="mailto:duawowns@gmail.com">duawowns@gmail.com</a>
+      <a href="https://github.com/duawowns" target="_blank" rel="noopener">↗ github</a>
+    </footer>
+
+    <script>
+      const cursor = document.getElementById("cursor");
+      let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+      let cx = mx, cy = my;
+      window.addEventListener("pointermove", (e) => {
+        mx = e.clientX; my = e.clientY;
+      });
+      const tick = () => {
+        cx += (mx - cx) * 0.18;
+        cy += (my - cy) * 0.18;
+        if (cursor) cursor.style.transform = `translate(${cx}px, ${cy}px)`;
+        requestAnimationFrame(tick);
+      };
+      tick();
+      document.querySelectorAll("a, button, .project-row").forEach((el) => {
+        el.addEventListener("pointerenter", () => cursor?.classList.add("hot"));
+        el.addEventListener("pointerleave", () => cursor?.classList.remove("hot"));
+      });
+
+      const reveal = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              e.target.classList.add("in");
+              reveal.unobserve(e.target);
+            }
+          });
+        },
+        { threshold: 0.18 }
+      );
+      document.querySelectorAll(".reveal").forEach((el) => reveal.observe(el));
+
+      const hero = document.querySelector("[data-scramble]");
+      if (hero) {
+        const target = hero.textContent ?? "";
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*/\\";
+        let frame = 0;
+        const total = 28;
+        const step = () => {
+          frame++;
+          const p = Math.min(frame / total, 1);
+          const out = target
+            .split("")
+            .map((c, i) => {
+              if (c === " ") return " ";
+              if (i / target.length < p) return c;
+              return chars[Math.floor(Math.random() * chars.length)];
+            })
+            .join("");
+          hero.textContent = out;
+          if (p < 1) requestAnimationFrame(step);
+          else hero.textContent = target;
+        };
+        requestAnimationFrame(step);
+      }
+    </script>
+  </body>
+</html>
