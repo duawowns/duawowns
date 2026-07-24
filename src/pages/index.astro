@@ -1,17 +1,105 @@
 ---
 import Base from "../layouts/Base.astro";
+
+const cases = [
+  {
+    no: "01",
+    title: "IPsec 터널 장시간 안정성 검증",
+    role: "원인 분리 · 회귀 검증",
+    summary:
+      "반복 연결 과정의 메모리 증가를 문제·기준·비교 빌드로 나눠 측정하고, 제품 변경과 기반 오픈소스 버전의 영향을 분리했습니다.",
+    proof: "수백만 회 규모 반복 시험 · RSS와 실행 시간 교차 비교",
+    result:
+      "문제 조건과 안정 조건의 차이를 확인하고, 수정 전후가 아닌 버전·변경 범위 단위로 회귀 기준을 정리했습니다.",
+    tags: ["strongSwan", "IPsec", "Linux", "XFRM"],
+  },
+  {
+    no: "02",
+    title: "ZTNA 제어 경로 부하 분석",
+    role: "병목 분석 · 성능 검증",
+    summary:
+      "제품 로그인, OpenZiti 제어 계층, 클라이언트 런타임을 분리해 동시성 증가 시 성공률과 지연이 달라지는 지점을 찾았습니다.",
+    proof: "계층별 부하 시험 · CPU와 응답 지연 · 프로세스 상태 확인",
+    result:
+      "서버 병목과 클라이언트 한계를 구분하고, 성공률과 응답 지연을 서로 다른 성능 지표로 관리했습니다.",
+    tags: ["OpenZiti", "ZTNA", "Load test", "Observability"],
+  },
+  {
+    no: "03",
+    title: "상황 기반 접근 정책",
+    role: "정책 평가 · API · E2E 검증",
+    summary:
+      "시간과 위치 조건을 접근 정책에 반영하고, 정책 변경 시 이미 연결된 세션까지 다시 평가되는 흐름을 확인했습니다.",
+    proof: "경계 조건 · API 상태 · 실제 클라이언트 접근 결과 교차 확인",
+    result:
+      "인증 성공과 서비스 접근 허용을 분리하고, 제어 서버의 판단이 실제 접속 차단까지 이어지는지 검증했습니다.",
+    tags: ["Policy", "Posture", "API", "E2E"],
+  },
+  {
+    no: "04",
+    title: "보안 게이트웨이 HA·데이터 경로",
+    role: "장애 시험 · 처리 경계 검증",
+    summary:
+      "게이트웨이 단일 장애와 암호화 조건별 데이터 경로를 나눠 기존 연결 유지 여부와 처리 경계를 확인했습니다.",
+    proof: "다수 서비스 연결 · 단일 장애 · 처리량과 오류 구간 측정",
+    result:
+      "시험 범위에서 기존 통신을 유지했고, 연결 성공률·전환 시간·처리량을 섞지 않는 검증 기준을 세웠습니다.",
+    tags: ["HA", "Gateway", "Network", "Performance"],
+  },
+];
+
+const principles = [
+  {
+    no: "A",
+    title: "재현",
+    text: "로그와 실장비에서 현상을 재현하고, 정상 경로와 장애 경로를 같은 기준으로 관찰합니다.",
+  },
+  {
+    no: "B",
+    title: "분리",
+    text: "제품 연동 계층, 오픈소스 계층, 클라이언트와 데이터 경로를 나눠 책임 범위를 좁힙니다.",
+  },
+  {
+    no: "C",
+    title: "교차 확인",
+    text: "소스와 설정만 보지 않고 프로세스, API, 패킷과 실제 접근 결과를 함께 확인합니다.",
+  },
+  {
+    no: "D",
+    title: "회귀",
+    text: "수정 후 재연결, 장시간 동작과 장애 복구까지 확인하며 구현과 검증 범위를 구분해 기록합니다.",
+  },
+];
 ---
 
-<Base title="duawowns" description="duawowns — security & network engineer">
+<Base
+  title="duawowns — Network Security Engineer"
+  description="IPsec VPN과 OpenZiti 기반 ZTNA를 개발하고, 실제 Linux 보안 장비에서 장애·성능·접근 정책을 검증하는 네트워크 보안 개발자입니다."
+>
   <section id="top" class="hero">
-    <p class="hero-eyebrow">
-      <span>(01)</span> security · network · access control
-    </p>
-    <h1 data-scramble>duawowns.</h1>
+    <div class="hero-copy">
+      <p class="hero-eyebrow">
+        <span>(01)</span> network security engineer
+      </p>
+      <h1>
+        접근 제어를<br />
+        <em>검증 가능한 동작</em>으로.
+      </h1>
+      <p class="hero-intro">
+        IPsec VPN과 strongSwan에서 OpenZiti 기반 ZTNA까지.
+        Linux 보안 장비의 정책·게이트웨이·패킷 경로를 연결해
+        장애 원인을 좁히고 실제 동작으로 확인합니다.
+      </p>
+      <div class="hero-actions" aria-label="주요 이동">
+        <a class="button button-primary" href="#work">대표 사례 보기</a>
+        <a class="button button-secondary" href="#contact">연락하기</a>
+      </div>
+    </div>
     <div class="hero-bottom">
       <div class="hero-tags">
-        <span>ZTNA</span><span>VPN</span><span>Auth</span><span>Policy</span>
+        <span>ZTNA</span><span>IPsec VPN</span><span>Linux</span><span>Policy</span>
       </div>
+      <p class="hero-meta">2022 — 현재<br />개발 · 분석 · 실장비 검증</p>
     </div>
   </section>
 
@@ -23,4 +111,97 @@ import Base from "../layouts/Base.astro";
       <span>policy verification</span><span>troubleshooting</span>
     </div>
   </div>
+
+  <section id="about" class="section intro-section" aria-labelledby="about-title">
+    <div class="section-head">
+      <p class="section-no">(02)</p>
+      <h2 id="about-title">Profile</h2>
+    </div>
+    <div class="profile-grid reveal">
+      <p class="profile-lead">
+        기능을 만드는 데서 멈추지 않고,<br />
+        <em>운영 환경에서 설명 가능한 상태</em>까지 만듭니다.
+      </p>
+      <div class="profile-body">
+        <p>
+          네트워크 보안 제품에서 IPsec VPN 정책과 터널 상태를 다뤘고,
+          OpenZiti 기반 ZTNA의 제어 서버·보안 게이트웨이·접근 정책으로
+          경험을 확장했습니다.
+        </p>
+        <p>
+          장애를 재현한 뒤 제품과 오픈소스의 경계를 분리하고, 수정 후에는
+          API·서비스 상태·Linux XFRM·실제 패킷과 클라이언트 접근 결과를
+          교차 확인합니다.
+        </p>
+        <dl class="profile-facts">
+          <div><dt>Focus</dt><dd>ZTNA · VPN · Access Control</dd></div>
+          <div><dt>Stack</dt><dd>Go · Python · Linux · OpenZiti</dd></div>
+          <div><dt>Method</dt><dd>Reproduce · Isolate · Verify</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section id="work" class="section" aria-labelledby="work-title">
+    <div class="section-head">
+      <p class="section-no">(03)</p>
+      <h2 id="work-title">Selected work</h2>
+    </div>
+    <div class="case-list">
+      {
+        cases.map((item) => (
+          <article class="case-card reveal">
+            <div class="case-index">{item.no}</div>
+            <div class="case-main">
+              <p class="case-role">{item.role}</p>
+              <h3>{item.title}</h3>
+              <p class="case-summary">{item.summary}</p>
+              <dl class="case-evidence">
+                <div>
+                  <dt>확인 방법</dt>
+                  <dd>{item.proof}</dd>
+                </div>
+                <div>
+                  <dt>결과</dt>
+                  <dd>{item.result}</dd>
+                </div>
+              </dl>
+            </div>
+            <ul class="case-tags" aria-label={`${item.title} 기술`}>
+              {item.tags.map((tag) => <li>{tag}</li>)}
+            </ul>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <section id="method" class="section method-section" aria-labelledby="method-title">
+    <div class="section-head">
+      <p class="section-no">(04)</p>
+      <h2 id="method-title">How I work</h2>
+    </div>
+    <ol class="method-grid">
+      {
+        principles.map((item) => (
+          <li class="method-card reveal">
+            <span>{item.no}</span>
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+  </section>
+
+  <section id="contact" class="contact" aria-labelledby="contact-title">
+    <p class="section-no">(05) Contact</p>
+    <h2 id="contact-title" class="contact-lead">
+      보안 문제를<br />
+      <a href="mailto:duawowns@gmail.com">함께 풀어봅시다.</a>
+    </h2>
+    <p class="contact-note">
+      네트워크 보안, ZTNA, VPN 개발과 운영 검증에 관한 대화를 환영합니다.
+    </p>
+  </section>
 </Base>

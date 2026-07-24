@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
 const base = import.meta.env.BASE_URL;
+const title = Astro.props.title ?? "duawowns";
+const description = Astro.props.description ?? "duawowns — portfolio";
 ---
 
 <!doctype html>
@@ -9,20 +11,28 @@ const base = import.meta.env.BASE_URL;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml" />
-    <title>{Astro.props.title ?? "duawowns"}</title>
-    <meta
-      name="description"
-      content={Astro.props.description ?? "duawowns — portfolio"}
-    />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
   </head>
   <body>
+    <a class="skip-link" href="#content">본문으로 건너뛰기</a>
     <div class="grain" aria-hidden="true"></div>
 
     <header class="nav">
       <a class="nav-brand" href="#top">duawowns</a>
+      <nav class="nav-links" aria-label="주요 메뉴">
+        <a href="#about">소개</a>
+        <a href="#work">사례</a>
+        <a href="#method">방식</a>
+        <a href="#contact">연락</a>
+      </nav>
     </header>
 
-    <main>
+    <main id="content">
       <slot />
     </main>
 
@@ -35,40 +45,16 @@ const base = import.meta.env.BASE_URL;
     <script>
       const reveal = new IntersectionObserver(
         (entries) => {
-          entries.forEach((e) => {
-            if (e.isIntersecting) {
-              e.target.classList.add("in");
-              reveal.unobserve(e.target);
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("in");
+              reveal.unobserve(entry.target);
             }
           });
         },
-        { threshold: 0.18 }
+        { threshold: 0.12 }
       );
       document.querySelectorAll(".reveal").forEach((el) => reveal.observe(el));
-
-      const hero = document.querySelector("[data-scramble]");
-      if (hero) {
-        const target = hero.textContent ?? "";
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*/\\";
-        let frame = 0;
-        const total = 28;
-        const step = () => {
-          frame++;
-          const p = Math.min(frame / total, 1);
-          const out = target
-            .split("")
-            .map((c, i) => {
-              if (c === " ") return " ";
-              if (i / target.length < p) return c;
-              return chars[Math.floor(Math.random() * chars.length)];
-            })
-            .join("");
-          hero.textContent = out;
-          if (p < 1) requestAnimationFrame(step);
-          else hero.textContent = target;
-        };
-        requestAnimationFrame(step);
-      }
     </script>
   </body>
 </html>
