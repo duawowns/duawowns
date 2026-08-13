@@ -8,7 +8,7 @@ Reference: https://variant.com/shared/59395f52-be5c-4617-ae38-9f44e5fe7ecf?t=178
 
 - Rebuilt the Astro portfolio from the supplied Variant reference.
 - Replaced placeholder portfolio copy with public-facing content derived from `이력서+경력기술서.pdf`.
-- Excluded the phone number, portrait, and a downloadable copy of the source PDF from the public build.
+- Excluded the phone number, portrait, company name, and a downloadable copy of the source PDF from the public build.
 - Verified at 1440 x 1000 and 390 x 844 in the in-app browser.
 
 ## Fidelity comparison
