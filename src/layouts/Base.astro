@@ -1,8 +1,9 @@
 ---
 import "../styles/global.css";
+
 const base = import.meta.env.BASE_URL;
-const title = Astro.props.title ?? "duawowns";
-const description = Astro.props.description ?? "duawowns — portfolio";
+const title = Astro.props.title ?? "염재준";
+const description = Astro.props.description ?? "Network Security Engineer portfolio";
 ---
 
 <!doctype html>
@@ -20,41 +21,35 @@ const description = Astro.props.description ?? "duawowns — portfolio";
   </head>
   <body>
     <a class="skip-link" href="#content">본문으로 건너뛰기</a>
-    <div class="grain" aria-hidden="true"></div>
-
-    <header class="nav">
-      <a class="nav-brand" href="#top">duawowns</a>
-      <nav class="nav-links" aria-label="주요 메뉴">
-        <a href="#about">소개</a>
-        <a href="#work">사례</a>
-        <a href="#method">방식</a>
-        <a href="#contact">연락</a>
-      </nav>
-    </header>
-
-    <main id="content">
-      <slot />
-    </main>
-
-    <footer class="footer">
-      <span>{new Date().getFullYear()}</span>
-      <a class="footer-mail" href="mailto:duawowns@gmail.com">duawowns@gmail.com</a>
-      <a href="https://github.com/duawowns" target="_blank" rel="noopener">↗ github</a>
-    </footer>
+    <slot />
 
     <script>
-      const reveal = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("in");
-              reveal.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.12 }
-      );
-      document.querySelectorAll(".reveal").forEach((el) => reveal.observe(el));
+      const progress = document.querySelector(".scroll-progress");
+      const navLinks = [...document.querySelectorAll(".floating-nav a")];
+      const sections = [...document.querySelectorAll("section[id], footer[id]")];
+
+      const updatePageState = () => {
+        const total = document.documentElement.scrollHeight - window.innerHeight;
+        const percentage = total > 0 ? Math.round((window.scrollY / total) * 100) : 0;
+        if (progress) progress.textContent = `${Math.min(100, Math.max(0, percentage))}%`;
+
+        let current = "work";
+        for (const section of sections) {
+          if (window.scrollY >= section.offsetTop - window.innerHeight * 0.42) {
+            current = section.id;
+          }
+        }
+        navLinks.forEach((link) => {
+          const active = link.getAttribute("href") === `#${current}`;
+          link.classList.toggle("active", active);
+          if (active) link.setAttribute("aria-current", "location");
+          else link.removeAttribute("aria-current");
+        });
+      };
+
+      updatePageState();
+      addEventListener("scroll", updatePageState, { passive: true });
+      addEventListener("resize", updatePageState);
     </script>
   </body>
 </html>
