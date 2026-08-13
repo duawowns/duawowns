@@ -27,6 +27,24 @@ const description = Astro.props.description ?? "Network Security Engineer portfo
       const progress = document.querySelector(".scroll-progress");
       const navLinks = [...document.querySelectorAll(".floating-nav a")];
       const sections = [...document.querySelectorAll("section[id], footer[id]")];
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          const selector = link.getAttribute("href");
+          const target = selector?.startsWith("#")
+            ? document.querySelector(selector)
+            : null;
+          if (!(target instanceof HTMLElement)) return;
+
+          event.preventDefault();
+          history.pushState(null, "", selector);
+          target.scrollIntoView({
+            behavior: reduceMotion.matches ? "auto" : "smooth",
+            block: "start",
+          });
+        });
+      });
 
       const updatePageState = () => {
         const total = document.documentElement.scrollHeight - window.innerHeight;
