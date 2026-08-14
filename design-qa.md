@@ -53,20 +53,19 @@ The combined desktop image was inspected as one side-by-side comparison input. A
 
 - None required for this scope.
 
-## Favicon update — Variant Archive 01
+## Favicon update — transparent background
 
 - Source visual truth: Variant frame `Favicon Design — Archive 01` and `.design-qa-loader/source-favicon.png`.
-- Implementation screenshot: `.design-qa-loader/implementation-favicon.png`.
-- Combined comparison: `.design-qa-loader/favicon-comparison.png`.
-- Viewport and pixels: 512 × 512 CSS px, 512 × 512 source and implementation pixels, density 1.
+- Implementation screenshot: `.design-qa-loader/implementation-favicon-transparent.png` rendered over a purple QA surface so transparent areas are visible.
+- Viewport and pixels: 512 × 512 CSS px and 512 × 512 implementation pixels, density 1.
 - State: standalone favicon SVG on its native 512 × 512 artboard.
-- Full-view and focused evidence: the favicon fills the entire comparison frame, so the combined full view also serves as the focused icon comparison.
+- Full-view and focused evidence: the favicon fills the entire comparison frame, so the full view also serves as the focused icon comparison.
 - Typography and copy: not applicable; the mark contains no text.
-- Spacing and layout: the outer `A` silhouette, apex, leg widths, and central 162 × 52 cutout match exactly.
-- Colors and tokens: both use `#0A0A0A` and white with no gradient or transparency drift.
-- Image quality and assets: the exact Variant SVG geometry was copied; no raster substitute, custom redraw, or hotlink was used.
-- Interaction and responsiveness: the page head resolves the versioned SVG URL as `image/svg+xml`; a fresh browser tab reports no console errors.
-- Findings: no actionable P0, P1, or P2 mismatch.
-- Comparison history: the first normalized 512 × 512 side-by-side comparison passed; no visual correction loop was needed.
+- Spacing and layout: the original outer `A` silhouette, apex, leg widths, and central 162 × 52 cutout are preserved.
+- Colors and tokens: the original black background was intentionally removed at the user's request. The purple QA surface is visible around the white mark and through the central cutout, confirming real transparency.
+- Image quality and assets: the original white vector geometry is retained; the cutout uses an SVG mask rather than a background-colored patch, raster substitute, redraw, or hotlink.
+- Interaction and responsiveness: the page head resolves the cache-busted SVG URL as `image/svg+xml`; the QA page reports no console errors.
+- Findings: no actionable P0, P1, or P2 issue remains. The transparent background is an intentional user-directed deviation from the source.
+- Comparison history: the initial black-background copy matched the source; the user requested transparency, and the revised 512 × 512 contrast-surface capture confirmed the background and cutout are transparent.
 
 final result: passed
