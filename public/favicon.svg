@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="7" fill="#0a0a0a"/>
-  <path d="M13 7 h8 v13 a6 6 0 0 1 -12 0 v-3 h4 v2 a2 2 0 0 0 4 0 v-8 h-4 z" fill="#d0ff3f"/>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="a-cutout">
+      <rect width="512" height="512" fill="white"/>
+      <rect x="175" y="315" width="162" height="52" fill="black"/>
+    </mask>
+  </defs>
+  <path d="M226 70H286L470 442H358L256 230L154 442H42L226 70Z" fill="white" mask="url(#a-cutout)"/>
 </svg>
