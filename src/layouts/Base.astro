@@ -24,10 +24,45 @@ const description = Astro.props.description ?? "Network Security Engineer portfo
     <slot />
 
     <script>
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const loader = document.querySelector("#site-loader");
+      const loaderProgress = document.querySelector(".site-loader__progress");
+      const loaderPercent = document.querySelector(".site-loader__percent");
       const progress = document.querySelector(".scroll-progress");
       const navLinks = [...document.querySelectorAll(".floating-nav a")];
       const sections = [...document.querySelectorAll("section[id], footer[id]")];
-      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+      if (loader instanceof HTMLElement) {
+        document.documentElement.classList.add("is-loading");
+        const duration = reduceMotion.matches ? 1 : 1200;
+        const startedAt = performance.now();
+
+        const updateLoader = (now) => {
+          const ratio = Math.min(1, (now - startedAt) / duration);
+          const eased = 1 - Math.pow(1 - ratio, 3);
+          const value = Math.round(eased * 100);
+
+          if (loaderProgress instanceof HTMLElement) {
+            loaderProgress.style.width = `${value}%`;
+          }
+          if (loaderPercent instanceof HTMLOutputElement) {
+            loaderPercent.value = `${value}%`;
+          }
+
+          if (ratio < 1) {
+            requestAnimationFrame(updateLoader);
+            return;
+          }
+
+          window.setTimeout(() => {
+            loader.classList.add("is-hidden");
+            document.documentElement.classList.remove("is-loading");
+            loader.setAttribute("aria-hidden", "true");
+          }, reduceMotion.matches ? 0 : 400);
+        };
+
+        requestAnimationFrame(updateLoader);
+      }
 
       navLinks.forEach((link) => {
         link.addEventListener("click", (event) => {

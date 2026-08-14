@@ -1,41 +1,56 @@
-# Design QA - Variant 59395f52 redesign
+# Design QA — Variant welcome loader
 
-Status: PASSED
-Date: 2026-08-13
-Reference: https://variant.com/shared/59395f52-be5c-4617-ae38-9f44e5fe7ecf?t=1786600805331
+Date: 2026-08-14
+Reference: https://variant.com/shared/0ccef068-d570-4de9-9cf9-470fd04a937f?t=1786694015623
 
-## Scope
+## Comparison target
 
-- Rebuilt the Astro portfolio from the supplied Variant reference.
-- Replaced placeholder portfolio copy with public-facing content derived from `이력서+경력기술서.pdf`.
-- Excluded the phone number, portrait, company name, and a downloadable copy of the source PDF from the public build.
-- Verified at 1440 x 1000 and 390 x 844 in the in-app browser.
+- Source visual truth: `.design-qa-loader/source-loader-desktop.png`
+- Implementation screenshots: `.design-qa-loader/implementation-loader-desktop.png`, `.design-qa-loader/implementation-loader-mobile.png`
+- Combined comparison: `.design-qa-loader/loader-comparison-desktop.jpg`
+- Desktop viewport and pixels: 1440 × 900 CSS px, 1440 × 900 source and implementation pixels, density 1.
+- Mobile implementation viewport and pixels: 390 × 844 CSS px and 390 × 844 pixels, density 1.
+- State: initial full-screen loading overlay while progress is moving.
 
-## Fidelity comparison
+## Full-view comparison evidence
 
-- Layout: matched the fixed centered pill navigation, 90vh hero, 12-column 8/4 and 4/8 project grid, ledger rows, two-column credentials grid, rounded contact surface, and fixed circular scroll progress.
-- Typography: bundled the reference Satoshi font locally at weights 400, 500, 700, and 900. The display scale, tight line height, negative letter spacing, muted body copy, and uppercase micro-labels match the source hierarchy.
-- Color and surfaces: matched `#0a0a0a` background, `#141414` surfaces, white foreground, gray secondary text, subtle `#242424` borders, 28px card radius, and translucent blurred navigation.
-- Imagery: bundled four source-family Unsplash assets locally and verified their crop and sharpness inside the project card aspect ratios. No remote image or font hotlinks remain in the production page.
-- Responsive behavior: converted the project grid to one column below 1024px, reduced mobile navigation and section spacing, stacked ledger data, and kept the 390px layout free of horizontal overflow.
-- Content: project, career, education, certification, skill, email, and location copy is grounded in the supplied resume while omitting sensitive personal data from the public page.
+- Layout and spacing: the centered vertical stack, 40px gaps, 200px × 1px progress track, and viewport-filling overlay match the source. The implementation intentionally replaces the source copy with the requested welcome message.
+- Fonts and typography: both use the locally bundled Satoshi family. The loader label matches the source at 12px, 400 weight, 1.4 line height, uppercase, and 0.2em tracking. The percentage matches at 14px, 500 weight, and tabular numerals.
+- Colors and tokens: the implementation matches the source `#0a0a0a` background, `#888` label, `#222` track, and white progress/percentage.
+- Image quality and assets: the loader contains no image, logo, icon, or decorative asset. No substitute or hotlinked asset is used.
+- Copy and content: `SYSTEM INITIALIZING` was intentionally changed to `WELCOME TO JAEJUN'S PORTFOLIO`; progress remains numeric from 0% to 100%.
 
-## Interaction and accessibility
+The combined desktop image was inspected as one side-by-side comparison input. A separate focused crop was unnecessary because the only visible component is the centered loader and every typographic and spacing detail is legible in the full-view comparison.
 
-- Work, Career, Credentials, and Contact navigation links scroll to real sections and update the active state.
-- Scroll percentage updates from 0% to 100% and remains legible on desktop and mobile.
-- Primary email and GitHub links have real destinations.
-- Arrow controls use Lucide icons rather than text-symbol or custom-drawn substitutes.
-- Semantic headings, section labels, decorative image alt handling, skip link, visible focus states, reduced-motion handling, and mobile tap targets were checked.
-- Browser verification confirmed the bundled Satoshi font loaded, the Career active state updated after navigation, two Lucide SVG icons rendered, and horizontal overflow was false at 390px.
+## Interaction and responsive verification
 
-## Verification
+- Progress animates to 100%, then the overlay fades and becomes non-interactive.
+- `aria-hidden` is set after completion, the document scroll lock is released, and the portfolio hero remains available.
+- Reduced-motion mode shortens the artificial progress animation and removes the long transition through the existing motion override.
+- At 390 × 844, the message, bar, and percentage remain centered with no horizontal overflow.
+- The locally bundled Satoshi font loads successfully.
+- Browser console errors: none.
 
-- `npm run build`: passed.
-- `npm audit --omit=dev`: 0 vulnerabilities.
-- `git diff --check`: passed.
-- Desktop and mobile reference/implementation comparison sheets were inspected from `.design-qa-v3/`.
+## Findings
 
-## Notes
+- No actionable P0, P1, or P2 mismatch remains.
+- Expected difference: the requested welcome copy is wider than the source phrase.
+- Expected difference: capture percentages differ because both loaders were captured while actively progressing.
 
-- Astro reports informational build-time warnings for absolute `/duawowns/fonts/...` public URLs. The files are copied into `dist/fonts/`, and browser verification confirmed the font loads at runtime under the GitHub Pages base path.
+## Comparison history
+
+- First comparison: no actionable P0/P1/P2 issues found; no visual correction loop was required.
+
+## Implementation checklist
+
+- [x] Welcome copy applied.
+- [x] Reference spacing, color, typography, and transition reproduced.
+- [x] Desktop and mobile states verified.
+- [x] Completion, accessibility state, font loading, overflow, and console checked.
+- [x] Production build and dependency audit passed.
+
+## Follow-up polish
+
+- None required for this scope.
+
+final result: passed
